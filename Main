@@ -1,0 +1,89 @@
+import java.io.*;
+import java.nio.file.*;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
+public class Main {
+
+    private static final String BACKUP_DIR = "backup";
+    private static final String LOG_FILE = "logs/operations.log";
+
+    public static void main(String[] args) {
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(System.in))) {
+            while (true) {
+                System.out.println("\n=== Data Backup and Restore System ===");
+                System.out.println("1. Backup a file");
+                System.out.println("2. Restore a file");
+                System.out.println("3. Exit");
+                System.out.print("Choose option: ");
+                int choice = Integer.parseInt(br.readLine());
+
+                switch (choice) {
+                    case 1:
+                        System.out.print("Enter the full path of the file to backup: ");
+                        String sourcePath = br.readLine();
+                        backupFile(sourcePath);
+                        break;
+                    case 2:
+                        System.out.print("Enter the name of the file to restore: ");
+                        String backupFileName = br.readLine();
+                        System.out.print("Enter the destination path (full path): ");
+                        String restorePath = br.readLine();
+                        restoreFile(backupFileName, restorePath);
+                        break;
+                    case 3:
+                        System.out.println("Exiting... Goodbye!");
+                        return;
+                    default:
+                        System.out.println("Invalid option. Try again.");
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static void backupFile(String sourcePath) throws IOException {
+        File source = new File(sourcePath);
+        if (!source.exists() || !source.isFile()) {
+            System.out.println("❌ Source file doesn't exist or is invalid.");
+            return;
+        }
+
+        File backupDir = new File(BACKUP_DIR);
+        if (!backupDir.exists()) backupDir.mkdirs();
+
+        File dest = new File(backupDir, source.getName());
+        Files.copy(source.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+        logOperation("BACKUP", source.getAbsolutePath(), dest.getAbsolutePath());
+        System.out.println("✅ Backup completed: " + dest.getAbsolutePath());
+    }
+
+    public static void restoreFile(String backupFileName, String restorePath) throws IOException {
+        File backupFile = new File(BACKUP_DIR, backupFileName);
+        if (!backupFile.exists()) {
+            System.out.println("❌ Backup file not found in backup folder.");
+            return;
+        }
+
+        File destFile = new File(restorePath);
+        Files.copy(backupFile.toPath(), destFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+
+        logOperation("RESTORE", backupFile.getAbsolutePath(), destFile.getAbsolutePath());
+        System.out.println("✅ Restore completed: " + destFile.getAbsolutePath());
+    }
+
+    private static void logOperation(String type, String from, String to) throws IOException {
+        File logDir = new File("logs");
+        if (!logDir.exists()) logDir.mkdirs();
+
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
+        String log = String.format("[%s] %s FROM: %s TO: %s%n", timeStamp, type, from, to);
+
+        FileWriter writer = new FileWriter(LOG_FILE, true);
+        writer.write(log);
+        writer.close();
+    }
+}
